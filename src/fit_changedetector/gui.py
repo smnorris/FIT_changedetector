@@ -77,22 +77,52 @@ def _labeled_row(parent, row: int, label: str, column_span: int = 1):
     return entry
 
 
-def _file_row(parent, row: int, label: str, save: bool = False, browse_title: str = "Select file", on_change=None):
+def _pick_file_or_folder(entry: tk.Entry, btn: tk.Button, title: str, on_change=None) -> None:
+    """Show a small popup below *btn* with File… and Folder… choices."""
+    popup = tk.Toplevel(entry.winfo_toplevel())
+    popup.overrideredirect(True)
+    popup.resizable(False, False)
+
+    def _pick(path):
+        popup.destroy()
+        if path:
+            entry.delete(0, tk.END)
+            entry.insert(0, path)
+            if on_change:
+                on_change(path)
+
+    tk.Button(popup, text="File…",   width=8, command=lambda: _pick(filedialog.askopenfilename(title=title))).pack(side="left", padx=4, pady=4)
+    tk.Button(popup, text="Folder…", width=8, command=lambda: _pick(filedialog.askdirectory(title=title))).pack(side="left", padx=(0, 4), pady=4)
+
+    popup.update_idletasks()
+    popup.geometry(f"+{btn.winfo_rootx()}+{btn.winfo_rooty() + btn.winfo_height()}")
+    popup.focus_set()
+    popup.bind("<FocusOut>", lambda e: popup.destroy())
+
+
+def _file_row(parent, row: int, label: str, save: bool = False, browse_title: str = "Select file",
+              on_change=None, allow_dir: bool = False):
     """Return an Entry pre-equipped with a Browse button.
 
     *on_change*, if provided, is called with the selected path after browse.
+    When *allow_dir* is True, Browse opens a file-or-folder picker popup.
     """
     tk.Label(parent, text=label, anchor="w").grid(row=row, column=0, sticky="w", padx=6, pady=3)
     entry = tk.Entry(parent, width=44)
     entry.grid(row=row, column=1, sticky="ew", padx=(6, 0), pady=3)
 
-    def _browse():
-        _browse_file(entry, browse_title, save)
-        if on_change:
-            on_change(entry.get())
-
-    btn = tk.Button(parent, text="Browse…", command=_browse)
+    btn = tk.Button(parent, text="Browse…")
     btn.grid(row=row, column=2, padx=(2, 6), pady=3)
+
+    if allow_dir:
+        btn.config(command=lambda: _pick_file_or_folder(entry, btn, browse_title, on_change))
+    else:
+        def _browse():
+            _browse_file(entry, browse_title, save)
+            if on_change:
+                on_change(entry.get())
+        btn.config(command=_browse)
+
     return entry
 
 
@@ -301,7 +331,7 @@ class CompareTab(tk.Frame):
         # --- Input files ---
         self.file_a = _file_row(
             self, r, "Original file *", browse_title="Select original file",
-            on_change=lambda p: self._populate_layers(p, self.layer_a),
+            on_change=lambda p: self._populate_layers(p, self.layer_a), allow_dir=True,
         )
         self.file_a.bind("<FocusOut>", lambda e: self._populate_layers(self.file_a.get(), self.layer_a))
         self.file_a.bind("<Return>", lambda e: self._populate_layers(self.file_a.get(), self.layer_a))
@@ -313,7 +343,7 @@ class CompareTab(tk.Frame):
         r += 1
         self.file_b = _file_row(
             self, r, "New file *", browse_title="Select new file",
-            on_change=lambda p: self._populate_layers(p, self.layer_b),
+            on_change=lambda p: self._populate_layers(p, self.layer_b), allow_dir=True,
         )
         self.file_b.bind("<FocusOut>", lambda e: self._populate_layers(self.file_b.get(), self.layer_b))
         self.file_b.bind("<Return>", lambda e: self._populate_layers(self.file_b.get(), self.layer_b))
