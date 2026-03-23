@@ -16,6 +16,14 @@ from datetime import datetime
 import tkinter as tk
 from tkinter import filedialog, scrolledtext, ttk
 
+try:
+    from tkinterdnd2 import TkinterDnD, DND_FILES
+    _DND_AVAILABLE = True
+except ImportError:
+    _DND_AVAILABLE = False
+
+_AppBase = TkinterDnD.Tk if _DND_AVAILABLE else tk.Tk
+
 # ---------------------------------------------------------------------------
 # Helpers
 # ---------------------------------------------------------------------------
@@ -30,6 +38,28 @@ def _browse_file(entry: tk.Entry, title: str = "Select file", save: bool = False
     if path:
         entry.delete(0, tk.END)
         entry.insert(0, path)
+
+
+def _register_drop(entry: tk.Entry, on_change=None) -> None:
+    """Register *entry* as a drag-and-drop target if tkinterdnd2 is available."""
+    if not _DND_AVAILABLE:
+        return
+
+    def _on_drop(event):
+        path = event.data.strip()
+        # Windows wraps paths containing spaces in braces; strip them.
+        if path.startswith("{") and path.endswith("}"):
+            path = path[1:-1]
+        else:
+            # Multiple files dropped — take the first one.
+            path = path.split()[0]
+        entry.delete(0, tk.END)
+        entry.insert(0, path)
+        if on_change:
+            on_change(path)
+
+    entry.drop_target_register(DND_FILES)
+    entry.dnd_bind("<<Drop>>", _on_drop)
 
 
 def _list_layers(path: str) -> list:
@@ -93,6 +123,7 @@ def _file_row(parent, row: int, label: str, save: bool = False, browse_title: st
 
     btn = tk.Button(parent, text="Browse…", command=_browse)
     btn.grid(row=row, column=2, padx=(2, 6), pady=3)
+    _register_drop(entry, on_change)
     return entry
 
 
@@ -110,6 +141,7 @@ def _folder_row(parent, row: int, label: str, browse_title: str = "Select folder
 
     btn = tk.Button(parent, text="Browse…", command=_browse)
     btn.grid(row=row, column=2, padx=(2, 6), pady=3)
+    _register_drop(entry)
     return entry
 
 
@@ -574,7 +606,7 @@ class AddHashKeyTab(tk.Frame):
 # ---------------------------------------------------------------------------
 
 
-class App(tk.Tk):
+class App(_AppBase):
     def __init__(self):
         super().__init__()
         self.title("FIT ChangeDetector GUI")

@@ -28,6 +28,9 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
+gui = [
+  "tkinterdnd2",
+]
 test = [
   "pytest",
   "pytest-xvfb",

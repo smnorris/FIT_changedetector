@@ -158,6 +158,14 @@ With the package installed and the environment active:
 
 On GTS, double-click `changedetector.vbs` in the repo root to launch without a console window.
 
+**Drag and drop**
+
+File fields support drag-and-drop from the OS file manager when `tkinterdnd2` is installed:
+
+    pip install fit-changedetector[gui]
+
+Without `tkinterdnd2` the GUI runs normally; only the drag-and-drop feature is unavailable.
+
 **Compare tab**
 
 | Field | Description |
