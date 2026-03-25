@@ -38,11 +38,6 @@ def _list_layers(path: str) -> list:
     if not path:
         return []
     try:
-        import fiona
-        return fiona.listlayers(path)
-    except Exception:
-        pass
-    try:
         import pyogrio
         return [str(r[0]) for r in pyogrio.list_layers(path)]
     except Exception:
@@ -54,17 +49,10 @@ def _list_fields(path: str, layer: str = None) -> list:
     path = path.strip()
     if not path:
         return []
-    kw = {"layer": layer} if layer else {}
-    try:
-        import fiona
-        with fiona.open(path, **kw) as src:
-            return list(src.schema["properties"].keys())
-    except Exception:
-        pass
     try:
         import pyogrio
-        info = pyogrio.read_info(path, **kw)
-        return list(info["fields"])
+        kw = {"layer": layer} if layer else {}
+        return list(pyogrio.read_info(path, **kw)["fields"])
     except Exception:
         return []
 
